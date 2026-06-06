@@ -40,7 +40,7 @@ protected:
     node_ = rclcpp::Node::make_shared("waypoint_test_node");
 
     odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-      "/odom", 10,
+      "/fastbot/odom", 10,
       [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         pos_x_ = msg->pose.pose.position.x;
         pos_y_ = msg->pose.pose.position.y;
@@ -60,8 +60,8 @@ protected:
     initial_y_ = pos_y_;
 
     action_client_ = rclcpp_action::create_client<WaypointAction>(node_, "fastbot_as");
-    ASSERT_TRUE(action_client_->wait_for_action_server(std::chrono::seconds(10)))
-      << "Action server not available";
+    ASSERT_TRUE(action_client_->wait_for_action_server(std::chrono::seconds(10))) <<
+      "Action server not available";
 
     // Send goal and wait for completion
     auto goal_msg = WaypointAction::Goal();
@@ -110,8 +110,8 @@ TEST_F(WaypointTest, test_goal_position_reached)
 {
   ASSERT_TRUE(goal_succeeded_) << "Action server reported failure";
   double dist = std::hypot(pos_x_ - GOAL_X, pos_y_ - GOAL_Y);
-  EXPECT_LT(dist, DIST_PRECISION)
-    << "Position error " << dist << " m exceeds threshold " << DIST_PRECISION << " m";
+  EXPECT_LT(dist, DIST_PRECISION) <<
+    "Position error " << dist << " m exceeds threshold " << DIST_PRECISION << " m";
 }
 
 TEST_F(WaypointTest, test_goal_yaw_reached)
@@ -122,8 +122,8 @@ TEST_F(WaypointTest, test_goal_yaw_reached)
   if (err_yaw > M_PI) {
     err_yaw = 2.0 * M_PI - err_yaw;
   }
-  EXPECT_LT(err_yaw, YAW_PRECISION)
-    << "Yaw error " << err_yaw << " rad exceeds threshold " << YAW_PRECISION << " rad";
+  EXPECT_LT(err_yaw, YAW_PRECISION) <<
+    "Yaw error " << err_yaw << " rad exceeds threshold " << YAW_PRECISION << " rad";
 }
 
 int main(int argc, char ** argv)

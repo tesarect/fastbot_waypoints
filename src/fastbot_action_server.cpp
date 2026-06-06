@@ -32,16 +32,24 @@ public:
   explicit WaypointActionServer()
   : Node("fastbot_as")
   {
-    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 1);
+    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("/fastbot/cmd_vel", 1);
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      "/odom", 10,
-      std::bind(&WaypointActionServer::odom_callback, this, std::placeholders::_1));
+      "/fastbot/odom", 10,
+      std::bind(
+        &WaypointActionServer::odom_callback, this,
+        std::placeholders::_1));
 
     action_server_ = rclcpp_action::create_server<WaypointAction>(
       this, "fastbot_as",
-      std::bind(&WaypointActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-      std::bind(&WaypointActionServer::handle_cancel, this, std::placeholders::_1),
-      std::bind(&WaypointActionServer::handle_accepted, this, std::placeholders::_1));
+      std::bind(
+        &WaypointActionServer::handle_goal, this,
+        std::placeholders::_1, std::placeholders::_2),
+      std::bind(
+        &WaypointActionServer::handle_cancel, this,
+        std::placeholders::_1),
+      std::bind(
+        &WaypointActionServer::handle_accepted, this,
+        std::placeholders::_1));
 
     RCLCPP_INFO(get_logger(), "Fastbot action server started");
   }
@@ -55,8 +63,8 @@ private:
   double pos_y_{0.0};
   double yaw_{0.0};
 
-  static constexpr double YAW_PRECISION = M_PI / 90.0;
-  static constexpr double DIST_PRECISION = 0.05;
+  static constexpr double YAW_PRECISION = M_PI / 10.0;
+  static constexpr double DIST_PRECISION = 0.1;
 
   void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
@@ -72,7 +80,8 @@ private:
     const rclcpp_action::GoalUUID &,
     std::shared_ptr<const WaypointAction::Goal> goal)
   {
-    RCLCPP_INFO(get_logger(), "Received goal: x=%.2f y=%.2f",
+    RCLCPP_INFO(
+      get_logger(), "Received goal: x=%.2f y=%.2f",
       goal->position.x, goal->position.y);
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
@@ -87,7 +96,8 @@ private:
   {
     std::thread{
       std::bind(&WaypointActionServer::execute, this, std::placeholders::_1),
-      goal_handle}.detach();
+      goal_handle}
+    .detach();
   }
 
   void execute(const std::shared_ptr<GoalHandle> goal_handle)
@@ -140,10 +150,7 @@ private:
     RCLCPP_INFO(get_logger(), "Goal succeeded");
   }
 
-  void stop_robot()
-  {
-    cmd_vel_pub_->publish(geometry_msgs::msg::Twist{});
-  }
+  void stop_robot() {cmd_vel_pub_->publish(geometry_msgs::msg::Twist{});}
 };
 
 int main(int argc, char ** argv)

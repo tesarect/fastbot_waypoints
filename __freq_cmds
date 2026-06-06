@@ -1,3 +1,16 @@
 cd ~/ros2_ws && colcon build --packages-select fastbot_waypoints && source install/setup.bash
 # (with simulation + action server running)
 colcon test --packages-select fastbot_waypoints --event-handler=console_direct+
+
+
+# Terminal 1 — Gazebo
+ros2 launch fastbot_gazebo one_fastbot_room.launch.py
+
+# Terminal 2 — Action server
+ros2 run fastbot_waypoints fastbot_action_server
+
+# Terminal 3 — Tests
+colcon test --packages-select fastbot_waypoints --event-handler=console_direct+
+
+
+ros2 action send_goal /fastbot_as fastbot_waypoints/action/WaypointAction "{position: {x: 0.5, y: 0.5, z: 0.0}}" --feedback
