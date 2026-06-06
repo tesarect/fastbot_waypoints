@@ -126,8 +126,8 @@ TEST_F(WaypointTest, test_goal_yaw_reached)
     "Yaw error " << err_yaw << " rad exceeds threshold " << YAW_PRECISION << " rad";
 }
 
-int main(int argc, char ** argv)
-{
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+// int main(int argc, char ** argv)
+// {
+//   testing::InitGoogleTest(&argc, argv);
+//   return RUN_ALL_TESTS();
+// }

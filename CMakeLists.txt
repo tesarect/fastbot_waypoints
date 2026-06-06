@@ -37,7 +37,11 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 
-  ament_add_gtest(test_waypoints test/test_waypoints.cpp)
+  ament_add_gtest(test_waypoints
+    test/test_waypoints.cpp
+    test/main.cpp
+    SKIP_LINKING_MAIN_LIBRARIES)
+  target_link_libraries(test_waypoints gtest)
   ament_target_dependencies(test_waypoints
     rclcpp rclcpp_action geometry_msgs nav_msgs)
   rosidl_target_interfaces(test_waypoints
