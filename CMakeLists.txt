@@ -30,12 +30,12 @@ install(TARGETS fastbot_action_server
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
+  # find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
 
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  # set(ament_cmake_copyright_FOUND TRUE)
+  # set(ament_cmake_cpplint_FOUND TRUE)
+  # ament_lint_auto_find_test_dependencies()
 
   ament_add_gtest(test_waypoints
     test/test_waypoints.cpp

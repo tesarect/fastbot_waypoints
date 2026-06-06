@@ -120,7 +120,9 @@ private:
       }
 
       const double desired_yaw = std::atan2(des_y - pos_y_, des_x - pos_x_);
-      const double err_yaw = desired_yaw - yaw_;
+      double err_yaw = desired_yaw - yaw_;
+      if (err_yaw > M_PI) {err_yaw -= 2.0 * M_PI;}
+      if (err_yaw < -M_PI) {err_yaw += 2.0 * M_PI;}
       err_pos = std::hypot(des_y - pos_y_, des_x - pos_x_);
 
       geometry_msgs::msg::Twist twist;
