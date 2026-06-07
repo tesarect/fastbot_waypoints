@@ -23,8 +23,8 @@ ros2 run fastbot_waypoints fastbot_action_server
 To manually verify the action server is working:
 ```bash
 source ~/ros2_ws/install/setup.bash
-ros2 action send_goal /fastbot_as fastbot_waypoints/action/WaypointAction \
-  "{position: {x: 0.5, y: 0.5, z: 0.0}}"
+ros2 action send_goal /fastbot_as fastbot_waypoints/action/Waypoint \
+  "{position: {x: 3.0, y: 2.1, z: 0.0}}"
 ```
 
 ---
@@ -48,12 +48,18 @@ Run a single test by name during development:
 
 ## Switching Between Passing and Failing Conditions
 
-Open [test/test_waypoints.cpp](test/test_waypoints.cpp) and find the constants at the top of the `WaypointTest` fixture:
+Open [test/test_waypoints.cpp](test/test_waypoints.cpp) and find the constants `DIST_PRECISION` & `YAW_PRECISION` at the top of the `WaypointTest` fixture:
 
 ```cpp
-static constexpr double DIST_PRECISION = 0.1;
-static constexpr double YAW_PRECISION  = M_PI / 10.0;
+  // Pass Condition
+  static constexpr double DIST_PRECISION = 0.1;
+  static constexpr double YAW_PRECISION = M_PI / 10.0;
+
+  // Fail Condition
+  // static constexpr double DIST_PRECISION = 0.01;
+  // static constexpr double YAW_PRECISION =  0.01;
 ```
+By default pass condition will be uncommented
 
 ### Passing conditions (default)
 
@@ -72,12 +78,23 @@ Expected output:
 
 And `colcon test-result --all` will show:
 ```
-build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml: 2 tests, 0 errors, 0 failures
+Summary: 2 tests, 0 errors, 0 failures
 ```
 
 ### Failing conditions
 
-Change `DIST_PRECISION` to an impossibly tight value:
+Uncommnet the fail condition & comment the pass condition.
+```cpp
+  // Pass Condition
+  // static constexpr double DIST_PRECISION = 0.1;
+  // static constexpr double YAW_PRECISION = M_PI / 10.0;
+
+  // Fail Condition
+  static constexpr double DIST_PRECISION = 0.01;
+  static constexpr double YAW_PRECISION =  0.01;
+```
+
+Or, Change `DIST_PRECISION` and `YAW_PRECISION` to an impossibly tight value, for example
 
 ```cpp
 static constexpr double DIST_PRECISION = 0.001;   // 1 mm — robot cannot achieve this
@@ -96,10 +113,31 @@ colcon test-result --all
 Expected output:
 ```
 [ RUN      ] WaypointTest.test_goal_position_reached
-test/test_waypoints.cpp:113: Failure
-      Value of: dist < DIST_PRECISION
-  Actual: false (0.08... m  vs threshold 0.001 m)
+/home/user/ros2_ws/src/fastbot_waypoints/test/test_waypoints.cpp:63: Failure
+Value of: action_client_->wait_for_action_server(std::chrono::seconds(10))
+  Actual: false
+Expected: true
+Action server not available
+[  FAILED  ] WaypointTest.test_goal_position_reached (10326 ms)
+[ RUN      ] WaypointTest.test_goal_yaw_reached
+/home/user/ros2_ws/src/fastbot_waypoints/test/test_waypoints.cpp:63: Failure
+Value of: action_client_->wait_for_action_server(std::chrono::seconds(10))
+  Actual: false
+Expected: true
+Action server not available
+[  FAILED  ] WaypointTest.test_goal_yaw_reached (10320 ms)
+[----------] 2 tests from WaypointTest (20646 ms total)
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (20646 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 2 tests, listed below:
 [  FAILED  ] WaypointTest.test_goal_position_reached
+[  FAILED  ] WaypointTest.test_goal_yaw_reached
+ 2 FAILED TESTS
+-- run_test.py: return code 1
+-- run_test.py: inject classname prefix into gtest result file '/home/user/ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml'
+1: -- run_test.py: verify result file '/home/user/ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml'
+1/1 Test #1: test_waypoints ...................***Failed   20.75 sec
 ```
 
 And `colcon test-result --all` will show:
@@ -112,7 +150,7 @@ build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml:
 > Remember to revert `DIST_PRECISION` back to `0.1` and rebuild before submitting.
 
 
-## Helpers
+## Additional Helpers
 ### Marker script to show Pose and orientation.
 
 Launch the Pose marker script and rviz

@@ -35,8 +35,15 @@ protected:
   static constexpr double GOAL_Y = 2.148;
   static constexpr double SPAWN_X = 1.497;  // known robot spawn position
   static constexpr double SPAWN_Y = 1.255;
+  // ---------------------------- Test conditions -----------------------------
+  // Pass Condition
   static constexpr double DIST_PRECISION = 0.1;
   static constexpr double YAW_PRECISION = M_PI / 10.0;
+  
+  // Fail Condition
+  // static constexpr double DIST_PRECISION = 0.01;
+  // static constexpr double YAW_PRECISION =  0.01;
+  // --------------------------------------------------------------------------
 
   void SetUp() override
   {

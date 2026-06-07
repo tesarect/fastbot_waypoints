@@ -156,7 +156,7 @@ private:
       if (dist_error <= dist_precision_) {
         // Position reached — stop regardless of yaw to avoid oscillating at goal
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
-                             1000,
+                             2000,
                              " Goal reached       | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
                              current_position_.x, current_position_.y, dist_error, yaw_error);
         state = "goal reached";
@@ -164,7 +164,7 @@ private:
       } else if (std::fabs(yaw_error) > yaw_precision_) {
         // Phase 1: rotate in place until facing the goal
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
-                             1000,
+                             2000,
                              " Rotating in place | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
                              current_position_.x, current_position_.y, dist_error, yaw_error);
         state = "fix yaw";
@@ -173,7 +173,7 @@ private:
       } else {
         // Phase 2: move forward with gentle angular correction to prevent lateral drift
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
-                             1000,
+                             2000,
                              " Moving forward     | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
                              current_position_.x, current_position_.y, dist_error, yaw_error);
         state = "go to point";
