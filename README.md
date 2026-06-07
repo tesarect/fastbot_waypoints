@@ -110,3 +110,19 @@ build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml:
 **Why it fails:** The robot's navigation loop exits when it is within 0.1 m of the goal (the action server's internal `DIST_PRECISION`). The test then checks that the final position is within `DIST_PRECISION = 0.001` m — a 1 mm tolerance the robot cannot achieve — so `EXPECT_LT` reports a failure.
 
 > Remember to revert `DIST_PRECISION` back to `0.1` and rebuild before submitting.
+
+---
+## Helpers
+### Marker script to show Pose and orientation.
+Run the marker script
+```bash
+ros2 run fastbot_waypoints pose_marker_display.py
+```
+Vizualize throudh rviz2
+```bash
+rviz2 -d ~/ros2_ws/src/fastbot/fastbot_description/rviz/fastbot.rviz
+```
+Teleop cmd
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/fastbot/cmd_vel
+```

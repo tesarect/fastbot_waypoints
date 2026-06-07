@@ -90,8 +90,8 @@ class PoseMarkerDisplay(Node):
         frame = msg.header.frame_id or 'odom'
 
         array = MarkerArray()
-        array.markers.append(self._sphere_marker(x, y, stamp, frame, ns))
-        array.markers.append(self._arrow_marker(x, y, yaw, stamp, frame, ns))
+        # array.markers.append(self._sphere_marker(x, y, stamp, frame, ns))
+        # array.markers.append(self._arrow_marker(x, y, yaw, stamp, frame, ns))
         array.markers.append(self._text_marker(x, y, yaw, stamp, frame, ns))
         return array
 
@@ -176,7 +176,7 @@ class PoseMarkerDisplay(Node):
         m.pose.position.z = 0.35
         m.pose.orientation.w = 1.0
 
-        m.scale.z = 0.10
+        m.scale.z = 0.30
 
         m.color.r = 1.0
         m.color.g = 1.0

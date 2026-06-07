@@ -1,0 +1,14 @@
+<launch>
+  <!-- Pose marker node: publishes /odom_markers and /fastbot_odom_markers -->
+  <node pkg="fastbot_waypoints"
+        exec="pose_marker_display.py"
+        name="pose_marker_display"
+        output="screen" />
+
+  <!-- RViz2 with the fastbot_waypoints rviz config -->
+  <node pkg="rviz2"
+        exec="rviz2"
+        name="rviz2"
+        output="screen"
+        args="-d $(find-pkg-share fastbot_waypoints)/rviz/fastbot.rviz" />
+</launch>
