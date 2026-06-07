@@ -184,8 +184,8 @@ class PoseMarkerDisplay(Node):
         m.color.a = 1.0
 
         m.text = (
-            f'x:   {x:+.3f} m\n'
-            f'y:   {y:+.3f} m\n'
+            f'x: {x:+.3f} m\n'
+            f'y: {y:+.3f} m\n'
             f'yaw: {math.degrees(yaw):+.1f} deg'
         )
         return m

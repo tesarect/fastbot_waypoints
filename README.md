@@ -122,7 +122,6 @@ ros2 launch fastbot_waypoints pose_marker_rviz.launch.xml
 ```
 > You can also run them individually `ros2 run fastbot_waypoints pose_marker_display.py` and then `rviz2 -d ~/ros2_ws/src/fastbot/fastbot_description/rviz/fastbot.rviz`
 
-```
 Teleop cmd
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/fastbot/cmd_vel

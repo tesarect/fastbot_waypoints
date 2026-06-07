@@ -39,7 +39,7 @@ public:
     declare_parameter("max_angular_velocity", 0.65);
     declare_parameter("kp_linear", 0.5);
     declare_parameter("kp_angular", 2.0);
-    declare_parameter("yaw_precision", 0.05);
+    declare_parameter("yaw_precision", 0.20);
     declare_parameter("dist_precision", 0.05);
 
     max_linear_vel_ = get_parameter("max_linear_velocity").as_double();
@@ -147,28 +147,37 @@ private:
       const double dx = des_x - current_position_.x;
       const double dy = des_y - current_position_.y;
       const double dist_error = std::hypot(dx, dy);
-      const double desired_yaw = std::atan2(dy, dx);
+      // +pi/2 offset: robot's physical forward is 90° CW from its base_link X-axis
+      const double desired_yaw = std::atan2(dy, dx) + M_PI_2;
       const double yaw_error = normalize_angle(desired_yaw - current_yaw_);
-
-      RCLCPP_INFO(get_logger(), "Distance error: %.2f, Yaw error: %.2f",
-        dist_error, yaw_error);
 
       geometry_msgs::msg::Twist twist;
 
       if (std::fabs(yaw_error) > yaw_precision_) {
         // Phase 1: rotate in place until facing the goal
-        RCLCPP_INFO(this->get_logger(), " 🌀 Rotating in place");
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
+                             1000,
+                             " Rotating in place | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
+                             current_position_.x, current_position_.y, dist_error, yaw_error);
         state = "fix yaw";
         twist.angular.z = std::clamp(kp_angular_ * yaw_error,
           -max_angular_vel_, max_angular_vel_);
       } else if (dist_error > dist_precision_) {
-        // Phase 2: drive straight — no angular correction to avoid arcing
-        RCLCPP_INFO(this->get_logger(), " 🔼 Moving forward");
+        // Phase 2: move forward with gentle angular correction to prevent lateral drift
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
+                             1000,
+                             " Moving forward     | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
+                             current_position_.x, current_position_.y, dist_error, yaw_error);
         state = "go to point";
         twist.linear.x = std::clamp(kp_linear_ * dist_error, 0.1, max_linear_vel_);
+        twist.angular.z = std::clamp(0.5 * kp_angular_ * yaw_error,
+          -max_angular_vel_, max_angular_vel_);
       } else {
         // Goal reached
-        RCLCPP_INFO(this->get_logger(), " 👍 Goal reached");
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
+                             1000,
+                             " Goal reached       | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
+                             current_position_.x, current_position_.y, dist_error, yaw_error);
         state = "goal reached";
         reached_goal = true;
       }

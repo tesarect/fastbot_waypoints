@@ -121,7 +121,8 @@ TEST_F(WaypointTest, test_goal_position_reached)
 TEST_F(WaypointTest, test_goal_yaw_reached)
 {
   ASSERT_TRUE(goal_succeeded_) << "Action server reported failure";
-  double desired_yaw = std::atan2(GOAL_Y - initial_y_, GOAL_X - initial_x_);
+  // +pi/2 offset: odom yaw at goal = physical direction + pi/2 (base_link X is 90° CW from forward)
+  double desired_yaw = std::atan2(GOAL_Y - initial_y_, GOAL_X - initial_x_) + M_PI_2;
   double err_yaw = std::fabs(yaw_ - desired_yaw);
   if (err_yaw > M_PI) {
     err_yaw = 2.0 * M_PI - err_yaw;
