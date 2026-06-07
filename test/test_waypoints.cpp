@@ -31,8 +31,10 @@ using WaypointAction = fastbot_waypoints::action::Waypoint;
 class WaypointTest : public ::testing::Test
 {
 protected:
-  static constexpr double GOAL_X = 0.5;
-  static constexpr double GOAL_Y = 0.5;
+  static constexpr double GOAL_X = 3.043;   // table position (odom frame)
+  static constexpr double GOAL_Y = 2.148;
+  static constexpr double SPAWN_X = 1.497;  // known robot spawn position
+  static constexpr double SPAWN_Y = 1.255;
   static constexpr double DIST_PRECISION = 0.1;
   static constexpr double YAW_PRECISION = M_PI / 10.0;
 
@@ -60,9 +62,6 @@ protected:
       rclcpp::spin_some(node_);
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    initial_x_ = pos_x_;
-    initial_y_ = pos_y_;
-
     action_client_ = rclcpp_action::create_client<WaypointAction>(node_, "fastbot_as");
     ASSERT_TRUE(action_client_->wait_for_action_server(std::chrono::seconds(10))) <<
       "Action server not available";
@@ -104,8 +103,6 @@ protected:
   double pos_x_{0.0};
   double pos_y_{0.0};
   double yaw_{0.0};
-  double initial_x_{0.0};
-  double initial_y_{0.0};
   bool odom_received_{false};
   bool goal_succeeded_{false};
 };
@@ -121,8 +118,9 @@ TEST_F(WaypointTest, test_goal_position_reached)
 TEST_F(WaypointTest, test_goal_yaw_reached)
 {
   ASSERT_TRUE(goal_succeeded_) << "Action server reported failure";
-  // +pi/2 offset: odom yaw at goal = physical direction + pi/2 (base_link X is 90° CW from forward)
-  double desired_yaw = std::atan2(GOAL_Y - initial_y_, GOAL_X - initial_x_) + M_PI_2;
+  // M_PI_2: base_link X is 90° CW from physical forward (FastBot URDF).
+  // SPAWN_X/Y: robot always starts at the known spawn — both tests compute the same expected yaw.
+  double desired_yaw = std::atan2(GOAL_Y - SPAWN_Y, GOAL_X - SPAWN_X) + M_PI_2;
   double err_yaw = std::fabs(yaw_ - desired_yaw);
   if (err_yaw > M_PI) {
     err_yaw = 2.0 * M_PI - err_yaw;

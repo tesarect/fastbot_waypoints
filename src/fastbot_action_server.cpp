@@ -153,7 +153,15 @@ private:
 
       geometry_msgs::msg::Twist twist;
 
-      if (std::fabs(yaw_error) > yaw_precision_) {
+      if (dist_error <= dist_precision_) {
+        // Position reached — stop regardless of yaw to avoid oscillating at goal
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
+                             1000,
+                             " Goal reached       | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
+                             current_position_.x, current_position_.y, dist_error, yaw_error);
+        state = "goal reached";
+        reached_goal = true;
+      } else if (std::fabs(yaw_error) > yaw_precision_) {
         // Phase 1: rotate in place until facing the goal
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
                              1000,
@@ -162,7 +170,7 @@ private:
         state = "fix yaw";
         twist.angular.z = std::clamp(kp_angular_ * yaw_error,
           -max_angular_vel_, max_angular_vel_);
-      } else if (dist_error > dist_precision_) {
+      } else {
         // Phase 2: move forward with gentle angular correction to prevent lateral drift
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
                              1000,
@@ -172,14 +180,6 @@ private:
         twist.linear.x = std::clamp(kp_linear_ * dist_error, 0.1, max_linear_vel_);
         twist.angular.z = std::clamp(0.5 * kp_angular_ * yaw_error,
           -max_angular_vel_, max_angular_vel_);
-      } else {
-        // Goal reached
-        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(),
-                             1000,
-                             " Goal reached       | pos=(%.3f, %.3f) | err=(%.3f, %.3f)",
-                             current_position_.x, current_position_.y, dist_error, yaw_error);
-        state = "goal reached";
-        reached_goal = true;
       }
 
       cmd_vel_pub_->publish(twist);
