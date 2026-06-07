@@ -24,9 +24,9 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/utils.h"
-#include "fastbot_waypoints/action/waypoint.hpp"
+#include "fastbot_waypoints/action/waypoint_action.hpp"
 
-using WaypointAction = fastbot_waypoints::action::Waypoint;
+using WaypointAction = fastbot_waypoints::action::WaypointAction;
 
 class WaypointTest : public ::testing::Test
 {
