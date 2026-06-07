@@ -63,8 +63,12 @@ private:
   double pos_y_{0.0};
   double yaw_{0.0};
 
-  static constexpr double YAW_PRECISION = M_PI / 10.0;
-  static constexpr double DIST_PRECISION = 0.1;
+  static constexpr double YAW_PRECISION = 0.05;
+  static constexpr double DIST_PRECISION = 0.05;
+  static constexpr double KP_ANGULAR = 2.0;
+  static constexpr double KP_LINEAR = 0.5;
+  static constexpr double MAX_ANGULAR = 0.65;
+  static constexpr double MAX_LINEAR = 0.5;
 
   void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
@@ -109,9 +113,8 @@ private:
     const double des_y = goal->position.y;
 
     rclcpp::Rate rate(25);
-    double err_pos = std::hypot(des_y - pos_y_, des_x - pos_x_);
 
-    while (err_pos > DIST_PRECISION && rclcpp::ok()) {
+    while (rclcpp::ok()) {
       if (goal_handle->is_canceling()) {
         result->success = false;
         goal_handle->canceled(result);
@@ -120,20 +123,21 @@ private:
       }
 
       const double desired_yaw = std::atan2(des_y - pos_y_, des_x - pos_x_);
-      double err_yaw = desired_yaw - yaw_;
-      if (err_yaw > M_PI) {err_yaw -= 2.0 * M_PI;}
-      if (err_yaw < -M_PI) {err_yaw += 2.0 * M_PI;}
-      err_pos = std::hypot(des_y - pos_y_, des_x - pos_x_);
+      const double err_yaw = std::atan2(std::sin(desired_yaw - yaw_), std::cos(desired_yaw - yaw_));
+      const double err_pos = std::hypot(des_y - pos_y_, des_x - pos_x_);
 
       geometry_msgs::msg::Twist twist;
       std::string state;
 
       if (std::fabs(err_yaw) > YAW_PRECISION) {
         state = "fix yaw";
-        twist.angular.z = err_yaw > 0 ? 0.65 : -0.65;
-      } else {
+        twist.angular.z = std::fmax(-MAX_ANGULAR, std::fmin(KP_ANGULAR * err_yaw, MAX_ANGULAR));
+      } else if (err_pos > DIST_PRECISION) {
         state = "go to point";
-        twist.linear.x = 0.6;
+        twist.linear.x = std::fmin(KP_LINEAR * err_pos, MAX_LINEAR);
+        twist.angular.z = std::fmax(-MAX_ANGULAR, std::fmin(KP_ANGULAR * err_yaw, MAX_ANGULAR));
+      } else {
+        break;
       }
 
       cmd_vel_pub_->publish(twist);

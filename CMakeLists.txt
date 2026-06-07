@@ -29,6 +29,11 @@ rosidl_target_interfaces(fastbot_action_server
 install(TARGETS fastbot_action_server
   DESTINATION lib/${PROJECT_NAME})
 
+install(
+  PROGRAMS scripts/pose_marker_display.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   # find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
