@@ -21,68 +21,88 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
-#include "fastbot_waypoints/action/waypoint_action.hpp"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/utils.h"
+#include "fastbot_waypoints/action/waypoint.hpp"
 
 class WaypointActionServer : public rclcpp::Node
 {
 public:
-  using WaypointAction = fastbot_waypoints::action::WaypointAction;
-  using GoalHandle = rclcpp_action::ServerGoalHandle<WaypointAction>;
+  using Waypoint = fastbot_waypoints::action::Waypoint;
+  using GoalHandle = rclcpp_action::ServerGoalHandle<Waypoint>;
 
   explicit WaypointActionServer()
   : Node("fastbot_as")
   {
+    // Declare tunable parameters so values can be changed without rebuilding
+    declare_parameter("max_linear_velocity", 0.5);
+    declare_parameter("max_angular_velocity", 0.65);
+    declare_parameter("kp_linear", 0.5);
+    declare_parameter("kp_angular", 2.0);
+    declare_parameter("yaw_precision", 0.05);
+    declare_parameter("dist_precision", 0.05);
+
+    max_linear_vel_ = get_parameter("max_linear_velocity").as_double();
+    max_angular_vel_ = get_parameter("max_angular_velocity").as_double();
+    kp_linear_ = get_parameter("kp_linear").as_double();
+    kp_angular_ = get_parameter("kp_angular").as_double();
+    yaw_precision_ = get_parameter("yaw_precision").as_double();
+    dist_precision_ = get_parameter("dist_precision").as_double();
+
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("/fastbot/cmd_vel", 1);
+
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
       "/fastbot/odom", 10,
-      std::bind(
-        &WaypointActionServer::odom_callback, this,
-        std::placeholders::_1));
+      std::bind(&WaypointActionServer::odom_callback, this, std::placeholders::_1));
 
-    action_server_ = rclcpp_action::create_server<WaypointAction>(
+    action_server_ = rclcpp_action::create_server<Waypoint>(
       this, "fastbot_as",
-      std::bind(
-        &WaypointActionServer::handle_goal, this,
+      std::bind(&WaypointActionServer::handle_goal, this,
         std::placeholders::_1, std::placeholders::_2),
-      std::bind(
-        &WaypointActionServer::handle_cancel, this,
-        std::placeholders::_1),
-      std::bind(
-        &WaypointActionServer::handle_accepted, this,
-        std::placeholders::_1));
+      std::bind(&WaypointActionServer::handle_cancel, this, std::placeholders::_1),
+      std::bind(&WaypointActionServer::handle_accepted, this, std::placeholders::_1));
 
     RCLCPP_INFO(get_logger(), "Fastbot action server started");
   }
 
 private:
-  rclcpp_action::Server<WaypointAction>::SharedPtr action_server_;
+  rclcpp_action::Server<Waypoint>::SharedPtr action_server_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
-  double pos_x_{0.0};
-  double pos_y_{0.0};
-  double yaw_{0.0};
+  // Current robot pose (updated by odom callback)
+  geometry_msgs::msg::Point current_position_;
+  double current_yaw_{0.0};
 
-  static constexpr double YAW_PRECISION = 0.05;
-  static constexpr double DIST_PRECISION = 0.05;
-  static constexpr double KP_ANGULAR = 2.0;
-  static constexpr double KP_LINEAR = 0.5;
-  static constexpr double MAX_ANGULAR = 0.65;
-  static constexpr double MAX_LINEAR = 0.5;
+  // Control parameters (set from ROS params)
+  double max_linear_vel_;
+  double max_angular_vel_;
+  double kp_linear_;
+  double kp_angular_;
+  double yaw_precision_;
+  double dist_precision_;
 
+  // Update pose from odometry; uses tf2::getYaw to avoid manual quaternion math
   void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
-    pos_x_ = msg->pose.pose.position.x;
-    pos_y_ = msg->pose.pose.position.y;
-    const auto & q = msg->pose.pose.orientation;
-    yaw_ = std::atan2(
-      2.0 * (q.w * q.z + q.x * q.y),
-      1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+    current_position_ = msg->pose.pose.position;
+    tf2::Quaternion q(
+      msg->pose.pose.orientation.x,
+      msg->pose.pose.orientation.y,
+      msg->pose.pose.orientation.z,
+      msg->pose.pose.orientation.w);
+    current_yaw_ = tf2::getYaw(q);
+  }
+
+  // Wrap angle to [-pi, pi] to avoid sign-flip jumps near +/-180 deg
+  double normalize_angle(double a)
+  {
+    return std::atan2(std::sin(a), std::cos(a));
   }
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID &,
-    std::shared_ptr<const WaypointAction::Goal> goal)
+    std::shared_ptr<const Waypoint::Goal> goal)
   {
     RCLCPP_INFO(
       get_logger(), "Received goal: x=%.2f y=%.2f",
@@ -106,15 +126,17 @@ private:
 
   void execute(const std::shared_ptr<GoalHandle> goal_handle)
   {
-    auto feedback = std::make_shared<WaypointAction::Feedback>();
-    auto result = std::make_shared<WaypointAction::Result>();
+    auto feedback = std::make_shared<Waypoint::Feedback>();
+    auto result = std::make_shared<Waypoint::Result>();
     const auto & goal = goal_handle->get_goal();
     const double des_x = goal->position.x;
     const double des_y = goal->position.y;
 
     rclcpp::Rate rate(25);
+    bool reached_goal = false;
+    std::string state = "idle";
 
-    while (rclcpp::ok()) {
+    while (rclcpp::ok() && !reached_goal) {
       if (goal_handle->is_canceling()) {
         result->success = false;
         goal_handle->canceled(result);
@@ -122,28 +144,38 @@ private:
         return;
       }
 
-      const double desired_yaw = std::atan2(des_y - pos_y_, des_x - pos_x_);
-      const double err_yaw = std::atan2(std::sin(desired_yaw - yaw_), std::cos(desired_yaw - yaw_));
-      const double err_pos = std::hypot(des_y - pos_y_, des_x - pos_x_);
+      const double dx = des_x - current_position_.x;
+      const double dy = des_y - current_position_.y;
+      const double dist_error = std::hypot(dx, dy);
+      const double desired_yaw = std::atan2(dy, dx);
+      const double yaw_error = normalize_angle(desired_yaw - current_yaw_);
+
+      RCLCPP_INFO(get_logger(), "Distance error: %.2f, Yaw error: %.2f",
+        dist_error, yaw_error);
 
       geometry_msgs::msg::Twist twist;
-      std::string state;
 
-      if (std::fabs(err_yaw) > YAW_PRECISION) {
+      if (std::fabs(yaw_error) > yaw_precision_) {
+        // Phase 1: rotate in place until facing the goal
+        RCLCPP_INFO(this->get_logger(), " 🌀 Rotating in place");
         state = "fix yaw";
-        twist.angular.z = std::fmax(-MAX_ANGULAR, std::fmin(KP_ANGULAR * err_yaw, MAX_ANGULAR));
-      } else if (err_pos > DIST_PRECISION) {
+        twist.angular.z = std::clamp(kp_angular_ * yaw_error,
+          -max_angular_vel_, max_angular_vel_);
+      } else if (dist_error > dist_precision_) {
+        // Phase 2: drive straight — no angular correction to avoid arcing
+        RCLCPP_INFO(this->get_logger(), " 🔼 Moving forward");
         state = "go to point";
-        twist.linear.x = std::fmin(KP_LINEAR * err_pos, MAX_LINEAR);
-        twist.angular.z = std::fmax(-MAX_ANGULAR, std::fmin(KP_ANGULAR * err_yaw, MAX_ANGULAR));
+        twist.linear.x = std::clamp(kp_linear_ * dist_error, 0.1, max_linear_vel_);
       } else {
-        break;
+        // Goal reached
+        RCLCPP_INFO(this->get_logger(), " 👍 Goal reached");
+        state = "goal reached";
+        reached_goal = true;
       }
 
       cmd_vel_pub_->publish(twist);
 
-      feedback->position.x = pos_x_;
-      feedback->position.y = pos_y_;
+      feedback->position = current_position_;
       feedback->state = state;
       goal_handle->publish_feedback(feedback);
 

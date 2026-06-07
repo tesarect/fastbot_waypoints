@@ -111,16 +111,17 @@ build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml:
 
 > Remember to revert `DIST_PRECISION` back to `0.1` and rebuild before submitting.
 
----
+
 ## Helpers
 ### Marker script to show Pose and orientation.
-Run the marker script
+
+Launch the Pose marker script and rviz
 ```bash
-ros2 run fastbot_waypoints pose_marker_display.py
+cd ~/ros2_ws && colcon build --packages-select fastbot_waypoints && source install/setup.bash
+ros2 launch fastbot_waypoints pose_marker_rviz.launch.xml
 ```
-Vizualize throudh rviz2
-```bash
-rviz2 -d ~/ros2_ws/src/fastbot/fastbot_description/rviz/fastbot.rviz
+> You can also run them individually `ros2 run fastbot_waypoints pose_marker_display.py` and then `rviz2 -d ~/ros2_ws/src/fastbot/fastbot_description/rviz/fastbot.rviz`
+
 ```
 Teleop cmd
 ```bash

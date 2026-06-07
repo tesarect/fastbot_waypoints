@@ -14,6 +14,8 @@ colcon test --packages-select fastbot_waypoints --event-handler=console_direct+
 
 
 ros2 action send_goal /fastbot_as fastbot_waypoints/action/WaypointAction "{position: {x: 0.5, y: 0.5, z: 0.0}}" --feedback
+ros2 action send_goal /fastbot_as fastbot_waypoints/action/WaypointAction "{position: {x: 3.0, y: 2.1, z: 0.0}}"
+ros2 action send_goal /fastbot_as fastbot_waypoints/action/WaypointAction "{position: {x: 1.0, y: 2.8, z: 0.0}}"
 
 spawn pose
 x: 1.4970817897094977

@@ -22,9 +22,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "nav_msgs/msg/odometry.hpp"
-#include "fastbot_waypoints/action/waypoint_action.hpp"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/utils.h"
+#include "fastbot_waypoints/action/waypoint.hpp"
 
-using WaypointAction = fastbot_waypoints::action::WaypointAction;
+using WaypointAction = fastbot_waypoints::action::Waypoint;
 
 class WaypointTest : public ::testing::Test
 {
@@ -44,10 +46,12 @@ protected:
       [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
         pos_x_ = msg->pose.pose.position.x;
         pos_y_ = msg->pose.pose.position.y;
-        const auto & q = msg->pose.pose.orientation;
-        yaw_ = std::atan2(
-          2.0 * (q.w * q.z + q.x * q.y),
-          1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+        tf2::Quaternion q(
+          msg->pose.pose.orientation.x,
+          msg->pose.pose.orientation.y,
+          msg->pose.pose.orientation.z,
+          msg->pose.pose.orientation.w);
+        yaw_ = tf2::getYaw(q);
         odom_received_ = true;
       });
 
