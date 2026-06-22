@@ -48,6 +48,7 @@ if(BUILD_TESTING)
   # set(ament_cmake_cpplint_FOUND TRUE)
   # ament_lint_auto_find_test_dependencies()
 
+  # Pass case
   ament_add_gtest(test_waypoints
     test/test_waypoints.cpp
     test/main.cpp
@@ -57,6 +58,18 @@ if(BUILD_TESTING)
     rclcpp rclcpp_action geometry_msgs nav_msgs tf2)
   rosidl_target_interfaces(test_waypoints
     ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+  # Fail case
+  ament_add_gtest(test_fail_waypoints
+    test/test_fail_waypoints.cpp
+    test/main.cpp
+    SKIP_LINKING_MAIN_LIBRARIES)
+  target_link_libraries(test_fail_waypoints gtest)
+  ament_target_dependencies(test_fail_waypoints
+    rclcpp rclcpp_action geometry_msgs nav_msgs tf2)
+  rosidl_target_interfaces(test_fail_waypoints
+    ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
 endif()
 
 ament_package()
